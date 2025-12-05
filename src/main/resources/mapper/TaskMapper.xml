@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.syj.geotask.task.mapper.TaskMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="org.syj.geotask.task.entity.Task">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="title" property="title" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="LONGVARCHAR"/>
+        <result column="due_date" property="dueDate" jdbcType="BIGINT"/>
+        <result column="due_time" property="dueTime" jdbcType="BIGINT"/>
+        <result column="is_completed" property="isCompleted" jdbcType="BOOLEAN"/>
+        <result column="is_reminder_enabled" property="isReminderEnabled" jdbcType="BOOLEAN"/>
+        <result column="location" property="location" jdbcType="VARCHAR"/>
+        <result column="latitude" property="latitude" jdbcType="DOUBLE"/>
+        <result column="longitude" property="longitude" jdbcType="DOUBLE"/>
+        <result column="geofence_radius" property="geofenceRadius" jdbcType="REAL"/>
+        <result column="created_at" property="createdAt" jdbcType="BIGINT"/>
+        <result column="updated_at" property="updatedAt" jdbcType="BIGINT"/>
+    </resultMap>
+
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        id, title, description, due_date, due_time, is_completed, is_reminder_enabled,
+        location, latitude, longitude, geofence_radius, created_at, updated_at
+    </sql>
+
+    <!-- 插入任务 -->
+    <insert id="insert" parameterType="org.syj.geotask.task.entity.Task" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO task (title, description, due_date, due_time, is_completed, is_reminder_enabled,
+                         location, latitude, longitude, geofence_radius, created_at, updated_at)
+        VALUES (#{title}, #{description}, #{dueDate}, #{dueTime}, #{isCompleted}, #{isReminderEnabled},
+                #{location}, #{latitude}, #{longitude}, #{geofenceRadius}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <!-- 根据ID删除任务 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM task WHERE id = #{id}
+    </delete>
+
+    <!-- 根据ID更新任务 -->
+    <update id="updateById" parameterType="org.syj.geotask.task.entity.Task">
+        UPDATE task
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="dueDate != null">due_date = #{dueDate},</if>
+            <if test="dueTime != null">due_time = #{dueTime},</if>
+            <if test="isCompleted != null">is_completed = #{isCompleted},</if>
+            <if test="isReminderEnabled != null">is_reminder_enabled = #{isReminderEnabled},</if>
+            <if test="location != null">location = #{location},</if>
+            <if test="latitude != null">latitude = #{latitude},</if>
+            <if test="longitude != null">longitude = #{longitude},</if>
+            <if test="geofenceRadius != null">geofence_radius = #{geofenceRadius},</if>
+            <if test="updatedAt != null">updated_at = #{updatedAt}</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询任务 -->
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM task
+        WHERE id = #{id}
+    </select>
+
+    <!-- 查询所有任务 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM task
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据完成状态查询任务 -->
+    <select id="selectByCompleted" parameterType="java.lang.Boolean" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM task
+        WHERE is_completed = #{isCompleted}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 根据标题模糊查询任务 -->
+    <select id="selectByTitleLike" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM task
+        WHERE title LIKE #{title}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 查询指定时间范围内的任务 -->
+    <select id="selectByDateRange" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM task
+        WHERE due_date &gt;= #{startDate} AND due_date &lt;== #{endDate}
+        ORDER BY due_date ASC
+    </select>
+
+    <!-- 查询指定地理位置范围内的任务 -->
+    <select id="selectByLocation" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM task
+        WHERE latitude IS NOT NULL 
+          AND longitude IS NOT NULL
+          AND (6371 * ACOS(COS(RADIANS(#{latitude})) * COS(RADIANS(latitude)) * 
+              COS(RADIANS(longitude) - RADIANS(#{longitude})) + 
+              SIN(RADIANS(#{latitude})) * SIN(RADIANS(latitude)))) &lt;== #{radius} / 1000
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 统计任务总数 -->
+    <select id="countTotal" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM task
+    </select>
+
+    <!-- 统计已完成任务数 -->
+    <select id="countCompleted" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM task WHERE is_completed = true
+    </select>
+
+    <!-- 统计未完成任务数 -->
+    <select id="countUncompleted" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM task WHERE is_completed = false
+    </select>
+
+</mapper>
